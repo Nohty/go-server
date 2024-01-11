@@ -15,11 +15,21 @@ func hashPassword(password string) (string, error) {
 }
 
 func GetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+
+	userId, _ := utils.GetUserID(c)
+	permission, _ := utils.GetPermission(c)
+	if uint(id) != userId && !permission.Has(utils.IsAdmin) {
+		return fiber.ErrForbidden
+	}
+
 	db := database.DB
 
 	var user model.User
-	db.Find(&user, id)
+	db.Preload("Contacts").Preload("Address").Find(&user, id)
 
 	if user.Username == "" {
 		return utils.Response(c, fiber.StatusNotFound, "User not found", nil)
@@ -58,6 +68,7 @@ func CreateUser(c *fiber.Ctx) error {
 			Postcode: input.Postcode,
 			Number:   input.Number,
 		},
+		Contacts: []model.User{},
 	}
 
 	hash, err := hashPassword(input.Password)
@@ -66,6 +77,7 @@ func CreateUser(c *fiber.Ctx) error {
 	}
 
 	user.Password = hash
+	user.Permission = utils.NewPermissionFlags(utils.IsUser)
 
 	db := database.DB
 	if err := db.Create(&user).Error; err != nil {
@@ -73,4 +85,8 @@ func CreateUser(c *fiber.Ctx) error {
 	}
 
 	return utils.Response(c, fiber.StatusCreated, "User successfully created", user)
+}
+
+func UpdateUser(c *fiber.Ctx) error {
+	return nil
 }
