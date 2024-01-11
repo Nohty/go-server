@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"fmt"
-
 	"github.com/Nohty/api/database"
 	"github.com/Nohty/api/model"
 	"github.com/Nohty/api/utils"
@@ -25,9 +23,7 @@ func GetUser(c *fiber.Ctx) error {
 	userId, _ := utils.GetUserID(c)
 	permission := utils.GetPermissionFromDB(userId)
 
-	fmt.Println(userId, permission)
-
-	if uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin) {
+	if (uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin)) || permission == 0 {
 		return fiber.ErrForbidden
 	}
 
@@ -118,7 +114,7 @@ func UpdateUser(c *fiber.Ctx) error {
 	userId, _ := utils.GetUserID(c)
 	permission := utils.GetPermissionFromDB(userId)
 
-	if uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin) {
+	if (uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin)) || permission == 0 {
 		return fiber.ErrForbidden
 	}
 
@@ -143,4 +139,45 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	return utils.Response(c, fiber.StatusOK, "User successfully updated", user)
+}
+
+func DeleteUser(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+
+	type DeleteUser struct {
+		Password string `json:"password" validate:"required,ascii,min=6"`
+	}
+
+	input := new(DeleteUser)
+
+	if err := utils.ParseBodyAndValidate(c, input); err != nil {
+		return err
+	}
+
+	userId, _ := utils.GetUserID(c)
+	permission := utils.GetPermissionFromDB(userId)
+
+	if (uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin)) || permission == 0 {
+		return fiber.ErrForbidden
+	}
+
+	db := database.DB
+
+	var user model.User
+	if err := db.First(&user, id).Error; err != nil {
+		return utils.Response(c, fiber.StatusNotFound, "User not found", nil)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		return utils.Response(c, fiber.StatusUnauthorized, "Invalid password", nil)
+	}
+
+	if err := db.Delete(&user).Error; err != nil {
+		return utils.Response(c, fiber.StatusInternalServerError, "Error deleting user", err)
+	}
+
+	return utils.Response(c, fiber.StatusOK, "User successfully deleted", nil)
 }
