@@ -18,14 +18,14 @@ const (
 )
 
 type Delivery struct {
-	gorm.Model
-	FromAddress Address `gorm:"foreignKey:ID"`
-	ToAddress   Address `gorm:"foreignKey:ID"`
-	FromUser    User    `gorm:"foreignKey:ID"`
-	ToUser      User    `gorm:"foreignKey:ID"`
-	Driver      User    `gorm:"foreignKey:ID"`
-	Price       float64 `gorm:"not null"`
-	Status      Status  `gorm:"not null"`
-	Size        Size    `gorm:"not null"`
-	Description string  `gorm:"not null"`
+	gorm.Model `json:"-"`
+	FromAddress Address `gorm:"foreignKey:ID" json:"from_address"`
+	ToAddress   Address `gorm:"foreignKey:ID" json:"to_address"`
+	FromUser    User    `gorm:"foreignKey:ID" json:"from_user"`
+	ToUser      User    `gorm:"foreignKey:ID" json:"to_user"`
+	Driver      User    `gorm:"foreignKey:ID" json:"driver"`
+	Price       float64 `gorm:"not null" json:"price"`
+	Status      Status  `gorm:"not null" json:"status"`
+	Size        Size    `gorm:"not null" json:"size"`
+	Description string  `gorm:"not null" json:"description"`
 }
