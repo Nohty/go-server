@@ -1,53 +1,54 @@
 package utils
 
-type PermissionFlags int64
+import (
+	"github.com/Nohty/api/database"
+	"github.com/Nohty/api/model"
+)
 
 const (
-	IsAdmin PermissionFlags = 1 << iota
+	IsAdmin int64 = 1 << iota
 	IsDriver
 	IsUser
 )
 
-func NewPermissionFlags(flags ...PermissionFlags) PermissionFlags {
-	var p PermissionFlags
+func HasPermission(permission int64, flags ...int64) bool {
 	for _, flag := range flags {
-		p.Add(flag)
-	}
-	return p
-}
-
-
-func (p PermissionFlags) Has(flag PermissionFlags) bool {
-	return p&flag != 0
-}
-
-func (p *PermissionFlags) Add(flag PermissionFlags) {
-	*p |= flag
-}
-
-func (p *PermissionFlags) Remove(flag PermissionFlags) {
-	*p &= ^flag
-}
-
-func (p *PermissionFlags) Toggle(flag PermissionFlags) {
-	*p ^= flag
-}
-
-func (p *PermissionFlags) Set(flag PermissionFlags) {
-	*p = flag
-}
-
-func (p *PermissionFlags) Clear() {
-	*p = 0
-}
-
-func (p PermissionFlags) String() string {
-	flags := [...]string{"IsAdmin", "IsDriver", "IsUser", "IsDeveloper"}
-	var str string
-	for i, f := range flags {
-		if p.Has(1 << i) {
-			str += f + " "
+		if permission&flag == flag {
+			return true
 		}
 	}
-	return str
+	return false
+}
+
+func NewPermissionFlags(flags ...int64) int64 {
+	var permission int64
+	for _, flag := range flags {
+		permission = permission | flag
+	}
+	return permission
+}
+
+func AddPermission(permission int64, flags ...int64) int64 {
+	for _, flag := range flags {
+		permission = permission | flag
+	}
+	return permission
+}
+
+func RemovePermission(permission int64, flags ...int64) int64 {
+	for _, flag := range flags {
+		permission = permission &^ flag
+	}
+	return permission
+}
+
+func GetPermissionFromDB(userId uint) int64 {
+	db := database.DB
+
+	var user model.User
+	if err := db.Select("permission").First(&user, userId).Error; err != nil {
+		return 0
+	}
+
+	return user.Permission
 }
