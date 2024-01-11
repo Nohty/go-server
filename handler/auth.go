@@ -90,7 +90,6 @@ func Login(c *fiber.Ctx) error {
 	claims := token.Claims.(jwt.MapClaims)
 	claims["username"] = userModel.Username
 	claims["user_id"] = userModel.ID
-	claims["permission"] = userModel.Permission
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
 	t, err := token.SignedString([]byte(config.JWT_SECRET))
