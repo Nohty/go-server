@@ -181,3 +181,52 @@ func DeleteUser(c *fiber.Ctx) error {
 
 	return utils.Response(c, fiber.StatusOK, "User successfully deleted", nil)
 }
+
+func UpdatePassword(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+
+	type UpdatePassword struct {
+		OldPassword string `json:"old_password" validate:"required,ascii,min=6"`
+		NewPassword string `json:"new_password" validate:"required,ascii,min=6"`
+	}
+
+	input := new(UpdatePassword)
+
+	if err := utils.ParseBodyAndValidate(c, input); err != nil {
+		return err
+	}
+
+	userId, _ := utils.GetUserID(c)
+	permission := utils.GetPermissionFromDB(userId)
+
+	if (uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin)) || permission == 0 {
+		return fiber.ErrForbidden
+	}
+
+	db := database.DB
+
+	var user model.User
+	if err := db.First(&user, id).Error; err != nil {
+		return utils.Response(c, fiber.StatusNotFound, "User not found", nil)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.OldPassword)); err != nil {
+		return utils.Response(c, fiber.StatusUnauthorized, "Invalid password", nil)
+	}
+
+	hash, err := hashPassword(input.NewPassword)
+	if err != nil {
+		return utils.Response(c, fiber.StatusInternalServerError, "Error hashing password", nil)
+	}
+
+	user.Password = hash
+
+	if err := db.Save(&user).Error; err != nil {
+		return utils.Response(c, fiber.StatusInternalServerError, "Error updating password", err)
+	}
+
+	return utils.Response(c, fiber.StatusOK, "Password successfully updated", nil)
+}
