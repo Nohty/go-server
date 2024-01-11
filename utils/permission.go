@@ -6,8 +6,16 @@ const (
 	IsAdmin PermissionFlags = 1 << iota
 	IsDriver
 	IsUser
-	IsDeveloper
 )
+
+func NewPermissionFlags(flags ...PermissionFlags) PermissionFlags {
+	var p PermissionFlags
+	for _, flag := range flags {
+		p.Add(flag)
+	}
+	return p
+}
+
 
 func (p PermissionFlags) Has(flag PermissionFlags) bool {
 	return p&flag != 0
