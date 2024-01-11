@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/Nohty/api/database"
 	"github.com/Nohty/api/model"
 	"github.com/Nohty/api/utils"
@@ -21,8 +23,11 @@ func GetUser(c *fiber.Ctx) error {
 	}
 
 	userId, _ := utils.GetUserID(c)
-	permission, _ := utils.GetPermission(c)
-	if uint(id) != userId && !permission.Has(utils.IsAdmin) {
+	permission := utils.GetPermissionFromDB(userId)
+
+	fmt.Println(userId, permission)
+
+	if uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin) {
 		return fiber.ErrForbidden
 	}
 
