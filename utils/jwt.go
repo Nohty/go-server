@@ -10,10 +10,9 @@ import (
 type Claims string
 
 const (
-	Username   Claims = "username"
-	UserID     Claims = "user_id"
-	Permission Claims = "permission"
-	Expire     Claims = "exp"
+	Username Claims = "username"
+	UserID   Claims = "user_id"
+	Expire   Claims = "exp"
 )
 
 func getClaims(c *fiber.Ctx, key Claims) any {
@@ -38,10 +37,10 @@ func GetUsername(c *fiber.Ctx) (string, error) {
 	return "", errors.New("invalid username")
 }
 
-func GetPermission(c *fiber.Ctx) (PermissionFlags, error) {
-	if permission, ok := getClaims(c, Permission).(float64); ok {
-		return PermissionFlags(permission), nil
+func GetExpire(c *fiber.Ctx) (int64, error) {
+	if expire, ok := getClaims(c, Expire).(float64); ok {
+		return int64(expire), nil
 	}
 
-	return 0, errors.New("invalid permission")
+	return 0, errors.New("invalid expire")
 }
