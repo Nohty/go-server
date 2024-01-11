@@ -93,5 +93,54 @@ func CreateUser(c *fiber.Ctx) error {
 }
 
 func UpdateUser(c *fiber.Ctx) error {
-	return nil
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+
+	type UpdateUser struct {
+		Username   string `json:"username" validate:"required,ascii"`
+		Email      string `json:"email" validate:"required,email"`
+		Phone      string `json:"phone" validate:"required,e164"`
+		WalletAddr string `json:"wallet_addr" validate:"required,ascii"`
+		Street     string `json:"street" validate:"required,ascii"`
+		City       string `json:"city" validate:"required,ascii"`
+		Postcode   string `json:"postcode" validate:"required,ascii"`
+		Number     string `json:"number" validate:"required,ascii"`
+	}
+
+	input := new(UpdateUser)
+
+	if err := utils.ParseBodyAndValidate(c, input); err != nil {
+		return err
+	}
+
+	userId, _ := utils.GetUserID(c)
+	permission := utils.GetPermissionFromDB(userId)
+
+	if uint(id) != userId && !utils.HasPermission(permission, utils.IsAdmin) {
+		return fiber.ErrForbidden
+	}
+
+	db := database.DB
+
+	var user model.User
+	if err := db.Preload("Contacts").Preload("Address").Find(&user, id).Error; err != nil {
+		return utils.Response(c, fiber.StatusNotFound, "User not found", nil)
+	}
+
+	user.Username = input.Username
+	user.Email = input.Email
+	user.Phone = input.Phone
+	user.WalletAddr = input.WalletAddr
+	user.Address.Street = input.Street
+	user.Address.City = input.City
+	user.Address.Postcode = input.Postcode
+	user.Address.Number = input.Number
+
+	if err := db.Save(&user).Error; err != nil {
+		return utils.Response(c, fiber.StatusInternalServerError, "Error updating user", err)
+	}
+
+	return utils.Response(c, fiber.StatusOK, "User successfully updated", user)
 }
